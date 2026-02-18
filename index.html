@@ -1,1 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Macbeth: The Fate Engine</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&display=swap');
+:root{
+--ink:#0a0805;--parchment:#f0e8d0;--aged:#d4c49a;
+--blood:#6b0f0f;--gold:#a07828;--dim:#7a5c1e;
+--txt:#1a1208;--fog:#b0a070;--safe:#2d6b3a;--warn:#7a5010;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--ink);min-height:100vh;display:flex;align-items:flex-start;justify-content:center;font-family:'Cormorant Garamond',serif;padding:2rem 1rem;}
+.book{background:var(--parchment);max-width:800px;width:100%;border-radius:2px;box-shadow:0 0 0 1px var(--aged),0 0 0 4px var(--ink),0 0 0 5px #3a2a10,8px 14px 70px rgba(0,0,0,.85);position:relative;overflow:hidden;}
+.book::before{content:'';position:absolute;left:0;top:0;bottom:0;width:30px;background:linear-gradient(90deg,#1a0e04 0%,#4a3010 45%,#3a2410 65%,#1a0e04 100%);box-shadow:2px 0 10px rgba(0,0,0,.5);z-index:2;}
+.inner{padding:2.5rem 2.5rem 2.5rem 3.8rem;position:relative;z-index:3;}
+.ch-label{display:block;text-align:center;font-size:.65rem;letter-spacing:.45em;text-transform:uppercase;color:var(--dim);margin-bottom:.35rem;}
+.bk-title{font-family:'UnifrakturMaguntia',cursive;font-size:clamp(2rem,6vw,3.4rem);color:var(--txt);text-align:center;line-height:1;margin-bottom:.2rem;}
+.bk-sub{text-align:center;font-style:italic;color:var(--dim);font-size:.95rem;margin-bottom:1.4rem;}
+.ornament{text-align:center;color:var(--gold);font-size:1rem;letter-spacing:.6em;margin:.8rem 0;opacity:.65;}
+.sc-title{font-size:1.45rem;font-weight:600;color:var(--txt);line-height:1.2;margin-bottom:.3rem;}
+.stag{display:inline-block;font-size:.58rem;letter-spacing:.22em;text-transform:uppercase;color:var(--parchment);background:var(--gold);padding:.12rem .5rem;border-radius:2px;opacity:.88;}
+.sc-body{font-size:1.03rem;line-height:1.88;color:var(--txt);margin-bottom:1.4rem;}
+.sc-body em{color:var(--blood);font-style:italic;}
+.sc-body strong{font-weight:600;}
+.dlg{border-left:2px solid var(--aged);padding:.55rem 1rem;margin:.9rem 0;font-style:italic;color:#3a2a10;font-size:.98rem;}
+.spk{font-style:normal;font-size:.65rem;letter-spacing:.22em;text-transform:uppercase;color:var(--dim);display:block;margin-bottom:.15rem;}
+/* ── STATS ── */
+.stats-panel{background:rgba(160,120,40,.07);border:1px solid rgba(160,120,40,.22);border-radius:3px;padding:.85rem 1rem;margin-bottom:1.3rem;}
+.sp-title{font-size:.56rem;letter-spacing:.35em;text-transform:uppercase;color:var(--dim);margin-bottom:.65rem;}
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:.55rem .9rem;}
+@media(max-width:520px){.sg{grid-template-columns:repeat(2,1fr);}}
+.stat{display:flex;flex-direction:column;gap:.15rem;}
+.sl{font-size:.54rem;letter-spacing:.15em;text-transform:uppercase;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.srow{display:flex;align-items:center;gap:.3rem;}
+.sbo{flex:1;height:5px;background:rgba(0,0,0,.1);border-radius:3px;overflow:hidden;}
+.sbi{height:100%;border-radius:3px;transition:width .75s cubic-bezier(.4,0,.2,1),background-color .75s;}
+.sv{font-size:.67rem;font-weight:600;min-width:1.7rem;text-align:right;transition:color .75s;}
+/* delta badges */
+.sdelta{font-size:.58rem;font-weight:700;display:none;padding:.05rem .25rem;border-radius:2px;}
+.sdelta.pos{display:inline;color:#2d6b3a;background:rgba(45,107,58,.12);}
+.sdelta.neg{display:inline;color:var(--blood);background:rgba(107,15,15,.12);}
+/* ── CONSEQUENCE PANEL ── */
+.consequence{background:rgba(160,120,40,.05);border:1px solid rgba(160,120,40,.18);border-radius:3px;padding:.75rem 1rem;margin-bottom:1.3rem;display:none;}
+.consequence.show{display:block;}
+.cq-title{font-size:.56rem;letter-spacing:.35em;text-transform:uppercase;color:var(--dim);margin-bottom:.5rem;}
+.cq-body{font-size:.9rem;line-height:1.6;color:var(--txt);font-style:italic;}
+.cq-chips{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.55rem;}
+.chip{font-size:.6rem;letter-spacing:.08em;padding:.12rem .45rem;border-radius:2px;display:flex;align-items:center;gap:.22rem;}
+.chip.up{background:rgba(45,107,58,.12);color:var(--safe);border:1px solid rgba(45,107,58,.25);}
+.chip.dn{background:rgba(107,15,15,.12);color:var(--blood);border:1px solid rgba(107,15,15,.25);}
+.chip.nt{background:rgba(160,120,40,.1);color:var(--dim);border:1px solid rgba(160,120,40,.2);}
+/* ── CHOICES ── */
+.choices-hdr{font-size:.62rem;letter-spacing:.35em;text-transform:uppercase;color:var(--dim);margin-bottom:.7rem;}
+.choices{display:flex;flex-direction:column;gap:.7rem;margin-bottom:1rem;}
+.cbtn{background:none;border:1px solid var(--aged);color:var(--txt);padding:0;text-align:left;cursor:pointer;font-family:'Cormorant Garamond',serif;border-radius:3px;transition:border-color .2s,background .2s;position:relative;overflow:hidden;width:100%;}
+.cbtn::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gold);transform:scaleY(0);transition:transform .2s;transform-origin:bottom;}
+.cbtn:hover{background:rgba(160,120,40,.07);border-color:var(--gold);}
+.cbtn:hover::before{transform:scaleY(1);}
+.cbtn.dark{border-color:rgba(107,15,15,.35);}
+.cbtn.dark::before{background:var(--blood);}
+.cbtn.dark:hover{background:rgba(107,15,15,.05);border-color:var(--blood);}
+.cmain{display:flex;align-items:flex-start;gap:.5rem;padding:.8rem 1rem .55rem;}
+.carr{color:var(--gold);flex-shrink:0;margin-top:.1rem;}
+.cbtn.dark .carr{color:var(--blood);}
+.ctxt{font-size:.95rem;line-height:1.45;flex:1;}
+.ctag{font-size:.54rem;letter-spacing:.18em;text-transform:uppercase;background:rgba(160,120,40,.14);color:var(--dim);padding:.1rem .38rem;border-radius:2px;flex-shrink:0;margin-top:.12rem;align-self:flex-start;}
+.ctag.dtag{background:rgba(107,15,15,.14);color:var(--blood);}
+/* Impact preview — shown on hover */
+.cimpact{padding:.35rem 1rem .6rem 2.3rem;border-top:1px solid rgba(160,120,40,.12);display:none;flex-wrap:wrap;gap:.3rem;}
+.cbtn:hover .cimpact{display:flex;}
+.clogic{padding:.4rem 1rem .6rem 2.3rem;border-top:1px solid rgba(160,120,40,.08);display:none;font-size:.82rem;line-height:1.5;color:#5a4a28;font-style:italic;background:rgba(160,120,40,.04);}
+.cbtn:hover .clogic{display:block;}
+.lbl{font-style:normal;font-size:.54rem;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);margin-right:.25rem;}
+/* ── HISTORY ── */
+.history{padding-top:.7rem;border-top:1px solid var(--aged);margin-top:.4rem;}
+.hl{font-size:.54rem;letter-spacing:.3em;text-transform:uppercase;color:var(--fog);margin-bottom:.35rem;}
+.hi{display:flex;flex-wrap:wrap;gap:.3rem;}
+.hchip{font-size:.66rem;color:var(--dim);background:rgba(160,120,40,.08);border:1px solid rgba(160,120,40,.15);padding:.1rem .42rem;border-radius:2px;}
+/* ── ENDINGS ── */
+.eicon{font-size:2.8rem;margin-bottom:.7rem;display:block;text-align:center;}
+.etitle{font-family:'UnifrakturMaguntia',cursive;font-size:2.1rem;color:var(--txt);text-align:center;margin-bottom:.4rem;}
+.etitle.blood{color:var(--blood);}
+.esub{font-style:italic;color:var(--dim);font-size:.95rem;margin-bottom:1.1rem;text-align:center;}
+.ebody{font-size:1rem;line-height:1.78;color:var(--txt);margin-bottom:1.3rem;}
+.steam-bd{background:rgba(160,120,40,.06);border:1px solid rgba(160,120,40,.2);border-radius:3px;padding:1rem 1.1rem;margin-bottom:1.3rem;}
+.steam-bd h4{font-size:.6rem;letter-spacing:.3em;text-transform:uppercase;color:var(--dim);margin-bottom:.7rem;}
+.si{display:flex;gap:.55rem;margin-bottom:.5rem;font-size:.87rem;line-height:1.45;color:var(--txt);}
+.sb{font-size:.54rem;letter-spacing:.15em;text-transform:uppercase;background:var(--gold);color:var(--parchment);padding:.12rem .4rem;border-radius:2px;white-space:nowrap;align-self:flex-start;margin-top:.1rem;}
+.score-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-bottom:1.3rem;}
+@media(max-width:520px){.score-grid{grid-template-columns:repeat(2,1fr);}}
+.sc-item{background:rgba(160,120,40,.06);border:1px solid rgba(160,120,40,.18);border-radius:3px;padding:.5rem .55rem;text-align:center;}
+.sc-lbl{font-size:.53rem;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin-bottom:.18rem;}
+.sc-v{font-size:1.1rem;font-weight:600;}
+.rbtn{background:var(--txt);color:var(--parchment);border:none;font-family:'Cormorant Garamond',serif;font-size:.82rem;letter-spacing:.2em;text-transform:uppercase;padding:.65rem 2rem;cursor:pointer;border-radius:2px;transition:background .2s;display:block;margin:0 auto;}
+.rbtn:hover{background:var(--blood);}
+.pgnum{text-align:center;font-size:.63rem;letter-spacing:.2em;color:var(--fog);margin-top:.75rem;}
+/* transition */
+.fade{animation:fadeIn .45s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(7px);}to{opacity:1;transform:translateY(0);}}
+</style>
+</head>
+<body>
+<div class="book"><div class="inner fade" id="root"></div></div>
+<script>
+// ═══════════════════════════════════════════════════
+// GAME STATE — 8 variables
+// ═══════════════════════════════════════════════════
+let G={
+resolve:60, // Macbeth's moral fortitude
+suspicion:20, // Court suspicion of Macbeth
+influence:50, // Lady Macbeth's hold
+exposure:20, // How exposed the murder plan is
+trust:60, // Duncan's trust in Macbeth
+guilt:30, // Macbeth's internal guilt
+opportunity:70, // How available Duncan is to be harmed
+loyalty:70, // Loyalty of Macbeth's allies
+history:[],
+page:1,
+lastFx:{}
+};
+function reset(){G={resolve:60,suspicion:20,influence:50,exposure:20,trust:60,guilt:30,opportunity:70,loyalty:70,history:[],page:1,lastFx:{}};}
+function applyFx(fx){
+G.lastFx={};
+for(const[k,v] of Object.entries(fx||{})){
+if(k in G&&k!=='history'&&k!=='page'&&k!=='lastFx'){
+const old=G[k];
+G[k]=Math.max(0,Math.min(100,G[k]+v));
+G.lastFx[k]=G[k]-old;
+}
+}
+}
+// ═══════════════════════════════════════════════════
+// VAR DEFINITIONS
+// ═══════════════════════════════════════════════════
+const VARS=[
+{k:'resolve', l:'Moral Resolve', inv:false, tip:'Higher = harder to manipulate into murder'},
+{k:'trust', l:'Duncan\'s Trust', inv:false, tip:'Higher = Duncan guards you less'},
+{k:'loyalty', l:'Ally Loyalty', inv:false, tip:'Banquo and others supporting you'},
+{k:'guilt', l:'Inner Guilt', inv:true, tip:'High guilt corrodes rational thinking'},
+{k:'suspicion', l:'Court Suspicion', inv:true, tip:'High = court watching Macbeth closely'},
+{k:'influence', l:'Lady M\'s Hold', inv:true, tip:'High = she can override your reasoning'},
+{k:'exposure', l:'Plan Exposed', inv:true, tip:'High = murder becomes structurally harder'},
+{k:'opportunity',l:'Duncan\'s Risk', inv:true, tip:'High = Duncan physically vulnerable'},
+];
+function sColor(v,inv){
+if(inv){return v>65?'#6b0f0f':v>40?'#a07828':'#2d6b3a';}
+return v<30?'#6b0f0f':v<55?'#a07828':'#2d6b3a';
+}
+// ═══════════════════════════════════════════════════
+// SCENE DATA
+// ═══════════════════════════════════════════════════
+const S={
+// ── OPENING ─────────────────────────────────────────────────────
+start:{
+act:'Prologue · The Heath',title:'The Witches Speak',steam:'Information Theory',
+body:`The fog is thick enough to taste. Three figures emerge from the moor, circling a dying flame. You are Macbeth — Scotland's greatest general, returning victorious from battle. Then they speak:
+<div class="dlg"><span class="spk">The Witches</span>"All hail, Macbeth! All hail, Macbeth, that shalt be King hereafter!"</div>
+Banquo watches your face. The witches vanish into nothing before you can speak. <em>You hold a prophecy. It is information — not destiny. What you do in the next few seconds will shape everything that follows.</em>`,
+choices:[
+{text:'Laugh it off aloud: "An entertaining riddle — nothing more. I serve Duncan, not witches."',tag:'Psychology',dark:false,
+fx:{resolve:+15,influence:-10,suspicion:-5,guilt:-5},next:'s_laugh',
+impact:'Dismissing the prophecy publicly reduces its psychological weight and signals loyalty to Banquo. But suppressed ambition rarely stays buried.',
+logic:'Psychology: Public reframing creates social accountability and reduces internal obsession.'},
+{text:'Stay completely silent. Say nothing to Banquo or anyone. Let it ferment privately.',tag:'Risk',dark:false,
+fx:{resolve:-10,influence:+15,guilt:+15,opportunity:+5},next:'s_silent',
+impact:'Secrecy isolates you and lets the prophecy grow unchecked in your mind. Lady Macbeth\'s influence rises because you have no rational voice to counter her.',
+logic:'Systems Thinking: Isolated information with no external check amplifies cognitive distortion.'},
+{text:'Write immediately to Lady Macbeth — share everything, no filter, no framing.',tag:'Systems',dark:false,
+fx:{influence:+20,exposure:+20,resolve:-5,guilt:+5},next:'s_letter',
+impact:'Sharing activates Lady Macbeth\'s formidable planning mind. The plan becomes real faster. Your resolve weakens as her certainty replaces your doubt.',
+logic:'Information Theory: Unfiltered data transfer to a high-drive actor accelerates system activation.'},
+{text:'Challenge the witches: "On what evidence? What are the conditions for this prediction?"',tag:'Mathematics',dark:false,
+fx:{resolve:+20,suspicion:-10,influence:-15,guilt:-10},next:'s_question',
+impact:'Demanding evidence reframes prophecy as conditional probability. You ride to court with rational distance intact — a major psychological advantage.',
+logic:'Mathematics: Treating prophecy as probabilistic, not deterministic, preserves agency and prevents fixation.'},
+]
+},
+// ── BRANCH A: Laughed it off ─────────────────────────────────────
+s_laugh:{
+act:'Act I · Scene II',title:'The Seed Dismissed',steam:'Behavioural Science',
+body:`Banquo laughs with you. The prophecy seems to dissolve into the cold air. But that evening at court, Duncan formally names his son Malcolm as heir to the throne — and a door slams somewhere inside you without your permission.
+<div class="dlg"><span class="spk">Macbeth (aside)</span>"The Prince of Cumberland! That is a step on which I must fall down, or else o'erleap…"</div>
+<em>Suppressed information doesn't vanish. It ferments.</em> Lady Macbeth has heard rumours. She finds you in the corridor, her eyes searching yours for the crack she suspects is there.`,
+choices:[
+{text:'Tell her about the prophecy — but frame it firmly as something you\'ve already dismissed.',tag:'Transparency',dark:false,
+fx:{exposure:+15,influence:+10,resolve:+5,trust:-5},next:'s_tell_lady',
+impact:'Transparency reduces the secrecy that fuels dangerous plans. But telling her at all activates her ambition — she now has the information to build with.',
+logic:'Behavioural Science: Paired information with clear values is harder to weaponise than raw data alone.'},
+{text:'Keep it entirely secret. You don\'t trust what she\'ll do with it.',tag:'Control',dark:false,
+fx:{influence:-15,resolve:+10,exposure:-5,guilt:+10,opportunity:+10},next:'s_hide_lady',
+impact:'Short-term safety — she can\'t plan what she doesn\'t know. But isolation leaves you without a rational check on your own growing obsession.',
+logic:'Risk Management: Reducing information flow limits the threat actor\'s capability, but creates internal pressure with no outlet.'},
+{text:'Take Banquo aside tonight — share the prophecy and use him as a rational sounding board.',tag:'Systems',dark:false,
+fx:{resolve:+20,influence:-15,suspicion:-10,loyalty:+15},next:'s_banquo',
+impact:'Banquo\'s scepticism acts as a cognitive counter-weight. Ally loyalty increases. Lady Macbeth\'s hold weakens because she is no longer your only confidant.',
+logic:'Systems Thinking: A rational external check prevents cognitive echo chambers and distributes risk.'},
+]
+},
+// ── BRANCH B: Silent ─────────────────────────────────────────────
+s_silent:{
+act:'Act I · Scene II',title:'The Quiet Hunger',steam:'Psychology',
+body:`You tell no one. Silence is not neutrality — it is a decision. The words replay obsessively. You write to your wife to process your thoughts — but your words betray more than you intended:
+<div class="dlg"><span class="spk">Macbeth\'s Letter</span>"These weird sisters saluted me and referred me to the coming on of time with 'Hail, King that shalt be!'"</div>
+Lady Macbeth reads it. Her eyes go completely still. <em>Her mind begins to build a system you never asked for.</em>`,
+choices:[
+{text:'Intercept her before she acts: "This is a probability, not a plan. We do absolutely nothing."',tag:'Critical Thinking',dark:false,
+fx:{resolve:+15,influence:-20,exposure:-10,guilt:-5},next:'s_reframe',
+impact:'Reframing stops her plan before it has momentum. Your resolve increases because you\'ve made a clear, reasoned declaration rather than vague hesitation.',
+logic:'Mathematics: Redefining the information as conditional probability removes the perceived mandate to act.'},
+{text:'Let her plan. You\'re curious — and part of you wants to hear it.',tag:'Passive Risk',dark:false,
+fx:{influence:+30,resolve:-20,guilt:+20,exposure:+25},next:'s_let_plan',
+impact:'Passive permission is active consent. Her influence surges. Your guilt rises because you know what you\'re allowing. The causal chain begins to close.',
+logic:'Causal Systems: Inaction in a high-momentum system is itself a force that accelerates outcomes.'},
+{text:'Announce the prophecy publicly — tell Duncan\'s court before Lady Macbeth can act on it.',tag:'Engineering',dark:false,
+fx:{exposure:+40,suspicion:+20,resolve:+20,influence:-25,trust:+10},next:'s_go_public',
+impact:'Radical transparency destroys secrecy — the primary ingredient of the murder plan. Court suspicion rises (why is he announcing this?) but Duncan\'s trust can increase dramatically.',
+logic:'Engineering: Removing the secrecy variable structurally prevents the crime from being feasible.'},
+]
+},
+// ── BRANCH C: Wrote the letter ────────────────────────────────────
+s_letter:{
+act:'Act I · Scene II',title:'The Letter Arrives',steam:'Information Systems',
+body:`Lady Macbeth reads by candlelight. By the time you arrive she is already pacing — not from excitement but from cold calculation. She has mapped Duncan's schedule, the guards' rotation, your dagger's location.
+<div class="dlg"><span class="spk">Lady Macbeth</span>"Hie thee hither, that I may pour my spirits in thine ear, and chastise with the valour of my tongue all that impedes thee from the golden round."</div>
+<em>You gave her the data. She is building a murder system from it.</em> The speed of it frightens you.`,
+choices:[
+{text:'Stop her immediately and firmly: "This is not strategy. This is a crime. I will not do it."',tag:'Ethics',dark:false,
+fx:{resolve:+25,influence:-30,exposure:-15,guilt:-10,trust:+5},next:'s_refuse',
+impact:'Clear refusal halts the plan and reduces Lady Macbeth\'s influence sharply. Your resolve strengthens because you\'ve made an unambiguous declaration — doubt has less to work with.',
+logic:'Ethics: Explicit, unambiguous moral refusal is harder for a manipulator to re-route than vague reluctance.'},
+{text:'Redirect her: "Your intelligence could build our rise legitimately — through alliance, not blood."',tag:'Behavioural',dark:false,
+fx:{resolve:+15,influence:-10,exposure:-5,suspicion:-10,loyalty:+10},next:'s_redirect',
+impact:'Redirection channels her considerable energy toward constructive ends. Her influence over you decreases as she gains a legitimate outlet for her ambition.',
+logic:'Behavioural Engineering: High-drive personalities redirect more effectively than they suppress. Give the energy a channel.'},
+{text:'Stay quiet and let her continue. You\'re not certain you want to stop it.',tag:'Passive Risk',dark:false,
+fx:{influence:+30,resolve:-20,guilt:+20,exposure:+25},next:'s_let_plan',
+impact:'Passive permission is active consent. Her hold over you deepens and the plan gains momentum from your silence.',
+logic:'Causal Systems: Each moment of passive non-intervention strengthens the system\'s trajectory toward crime.'},
+]
+},
+// ── BRANCH D: Questioned the witches ─────────────────────────────
+s_question:{
+act:'Act I · Scene II',title:'Interrogating Fate',steam:'Mathematics · Probability',
+body:`The witches are amused but have no evidence. Your question has done something crucial: by demanding conditions, you have framed the prophecy as uncertain data rather than divine command.
+<div class="dlg"><span class="spk">Macbeth</span>"A prediction is a conditional probability. It describes what will happen if conditions hold — not what must happen regardless."</div>
+Banquo nods. You ride to court with rational distance intact. But then Duncan names Malcolm heir — and the path is formally closed. The prophecy now seems impossible without something drastic.`,
+choices:[
+{text:'Publicly congratulate Malcolm and formally renounce any personal claim to the succession.',tag:'Engineering',dark:false,
+fx:{resolve:+25,suspicion:-20,exposure:-20,influence:-20,trust:+20,loyalty:+10},next:'s_remove_self',
+impact:'Removing yourself from the succession equation makes fulfilling the prophecy structurally impossible without enormous escalation. Duncan\'s trust in you surges.',
+logic:'Systems Engineering: Removing a necessary variable from the causal chain — in this case, your own candidacy — collapses the probability of the outcome.'},
+{text:'Seek a private audience with Duncan — propose a formal succession council to discuss the process.',tag:'Political Science',dark:false,
+fx:{resolve:+10,suspicion:-10,influence:-5,trust:+15},next:'s_council',
+impact:'A formal council creates institutional legitimacy and channels ambition into process. Duncan\'s trust increases because you\'re proposing structure, not seizing power.',
+logic:'Political Science: Institutionalising succession decisions removes them from the realm of individual violent action.'},
+{text:'Accept the door is closed — but share the prophecy with Lady Macbeth anyway.',tag:'Risk',dark:false,
+fx:{influence:+10,exposure:+15,resolve:-5,guilt:+10},next:'s_letter',
+impact:'Sharing after your rational framing means Lady Macbeth receives it without the emotional charge of your initial ambition — but she will still build with it.',
+logic:'Information Theory: Data shared with context is safer than data shared raw — but still activates the recipient\'s planning systems.'},
+]
+},
+// ── MID-GAME: Tell Lady Macbeth ───────────────────────────────────
+s_tell_lady:{
+act:'Act I · Scene III',title:'Transparency as Shield',steam:'Behavioural Science',
+body:`You tell her plainly — and you watch her read your face for the crack of ambition. You've framed it as already dismissed. She searches and finds very little. <em>Your transparency is, paradoxically, a kind of armour.</em>
+<br><br>She pivots immediately: "Then you must not want it badly enough." You recognise this — it's a technique. She is attacking your identity to produce an action her logic cannot justify.`,
+choices:[
+{text:'Name the technique out loud: "You\'re using identity pressure to override my reasoning. I see it clearly. My answer is no."',tag:'Psychology',dark:false,
+fx:{resolve:+20,influence:-30,suspicion:-5,guilt:-5},next:'s_name_manip',
+impact:'Naming a manipulation technique while it is being used neutralises it completely. Lady Macbeth\'s hold drops sharply — she has never been seen so clearly.',
+logic:'Behavioural Psychology: Named manipulation loses its power. The technique requires the target\'s unconscious compliance.'},
+{text:'Engage thoughtfully: "Tell me your plan. I want to understand what you\'re imagining." You\'ll use what you learn to prevent it.',tag:'Systems',dark:false,
+fx:{resolve:-5,influence:+15,exposure:+10,guilt:+10},next:'s_engage_plan',
+impact:'Listening gives you intelligence — every link in her plan becomes a link you can break. But it also increases her hold as she mistakes your attention for consent.',
+logic:'Systems Thinking: Understanding a system\'s architecture is the prerequisite for disrupting it effectively.'},
+{text:'Offer her an alternative immediately: "Your mind is the sharpest in Scotland. Help me find a legitimate path to power."',tag:'Behavioural',dark:false,
+fx:{resolve:+10,influence:-15,exposure:-5,loyalty:+5,trust:+5},next:'s_redirect',
+impact:'Offering a real channel for her ambition redirects her considerable capability. Her hold decreases as she gains a meaningful outlet.',
+logic:'Behavioural Engineering: Redirect high-drive capability; don\'t try to extinguish it.'},
+{text:'Walk away from the conversation entirely. You need space to think.',tag:'Risk',dark:false,
+fx:{resolve:-5,influence:+10,guilt:+15,opportunity:+5},next:'s_alone_night',
+impact:'Withdrawal without resolution leaves ambition and pressure unaddressed. The guilt and opportunity variables compound in the silence.',
+logic:'Psychology: Avoidance of high-stakes decisions under pressure rarely reduces pressure — it accumulates it.'},
+]
+},
+// ── MID-GAME: Hide from Lady M ────────────────────────────────────
+s_hide_lady:{
+act:'Act I · Scene III',title:'The Isolation Strategy',steam:'Systems Thinking',
+body:`For a week it seems to work. Then Duncan announces he will visit Inverness — your castle. Your home. <em>Opportunity has just maximised itself without your help or consent.</em>
+<div class="dlg"><span class="spk">Duncan</span>"This castle hath a pleasant seat; the air nimbly and sweetly recommends itself unto our gentle senses."</div>
+He arrives smiling. Unguarded. Trusting. Lady Macbeth greets him warmly, completely unaware of the prophecy. But you know what she would do if she knew. And the night stretches ahead.`,
+choices:[
+{text:'Move Duncan\'s quarters to the heavily guarded east wing and double his personal protection tonight.',tag:'Engineering',dark:false,
+fx:{suspicion:+15,resolve:+20,exposure:+10,influence:-10,opportunity:-25},next:'s_guard',
+impact:'Reducing opportunity is the most direct structural intervention. Duncan\'s vulnerability drops significantly. Court suspicion rises slightly — why is Macbeth so concerned with the king\'s security?',
+logic:'Engineering: Reducing the opportunity variable directly lowers the probability of the crime occurring, regardless of intent.'},
+{text:'Tell Lady Macbeth the prophecy now — and simultaneously declare clearly that you will not act on it.',tag:'Ethics',dark:false,
+fx:{resolve:+15,influence:-20,exposure:+15,guilt:-10},next:'s_tell_decision',
+impact:'Paired information with a stated decision is harder to manipulate than vague silence. Her influence drops because you\'ve closed the ambiguity she exploits.',
+logic:'Ethics: Moral clarity stated explicitly is more robust under pressure than moral clarity held privately.'},
+{text:'Go to Banquo tonight and ask him to watch Duncan\'s door without explanation.',tag:'Covert Strategy',dark:false,
+fx:{loyalty:+10,opportunity:-15,resolve:+10,guilt:-5},next:'s_banquo_guard',
+impact:'Duncan\'s physical risk decreases. Banquo\'s loyalty deepens because you\'re treating him as a trusted ally. But you carry the weight of the unspoken reason alone.',
+logic:'Systems Thinking: Distributing protective responsibility reduces single points of failure without requiring full disclosure.'},
+{text:'The opportunity is here. The ambition is here. The door is open.',tag:'⚠ Dark Path',dark:true,
+fx:{resolve:-40,influence:+30,suspicion:+60,exposure:+80,guilt:+40,trust:-60},next:'end_murder',
+impact:'Every variable that enables murder is at its peak. Every variable that prevents it has been left unaddressed. This is where passive decision-making leads.',
+logic:'Causal Systems: Passive inaction across multiple decision points has intact all causal links. The crime is now structurally available.'},
+]
+},
+// ── Banquo as ally ────────────────────────────────────────────────
+s_banquo:{
+act:'Act I · Scene III',title:'The Rational Council',steam:'Systems Thinking',
+body:`Banquo listens carefully, then says something unexpected:
+<div class="dlg"><span class="spk">Banquo</span>"Oftentimes, to win us to our harm, the instruments of darkness tell us truths — win us with honest trifles, to betray us in deepest consequence."</div>
+<em>He has already applied critical thinking to the prophecy.</em> Together you model the causal chain: what conditions would allow murder to occur? Secrecy. Opportunity. Lady Macbeth's unredirected drive. Remove any one — and the chain fractures.`,
+choices:[
+{text:'Act immediately — increase Duncan\'s visibility in court, reduce secrecy, remove the isolation variable.',tag:'Engineering',dark:false,
+fx:{resolve:+20,suspicion:-15,exposure:-20,influence:-10,loyalty:+10,trust:+10},next:'s_remove_self',
+impact:'Removing secrecy collapses the most foundational link in the causal chain. Court suspicion drops as you demonstrate loyalty openly.',
+logic:'Systems Engineering: Secrecy is the load-bearing variable of the causal chain. Remove it and the whole structure loses stability.'},
+{text:'Ask Banquo to shadow Duncan as an informal guard — without telling him why yet.',tag:'Covert Strategy',dark:false,
+fx:{loyalty:+15,opportunity:-20,resolve:+10,trust:+5},next:'s_banquo_guard',
+impact:'Duncan\'s physical risk drops significantly. Banquo\'s loyalty increases through trust. The secrecy is preserved temporarily but the immediate threat is managed.',
+logic:'Strategy: Reducing opportunity through trusted allies is more sustainable than single-actor prevention.'},
+{text:'Bring Lady Macbeth into the conversation — with Banquo present as a rational check on both of you.',tag:'Behavioural',dark:false,
+fx:{resolve:+10,influence:-15,exposure:-5,loyalty:+10},next:'s_redirect',
+impact:'Banquo\'s presence changes the dynamic completely — Lady Macbeth cannot easily manipulate Macbeth in front of an observer. Her hold on you weakens.',
+logic:'Behavioural Science: Social accountability reduces manipulative behaviour. The presence of observers constrains extreme responses.'},
+{text:'Ask Banquo directly: "Would you support my claim to the throne, if it came to that?"',tag:'Risk',dark:false,
+fx:{loyalty:-20,suspicion:+15,resolve:-10,trust:-10},next:'s_test_banquo',
+impact:'Testing Banquo\'s loyalty backfires. He is unsettled by the question and withdraws trust. Your suspicion rating rises as word spreads of your strange enquiry.',
+logic:'Psychology: Premature disclosure of ambition to an ally who has not demonstrated complicity damages the relationship irreparably.'},
+]
+},
+// ── Reframe with Lady Macbeth ─────────────────────────────────────
+s_reframe:{
+act:'Act I · Scene III',title:'Rewriting the Equation',steam:'Mathematics · Ethics',
+body:`You catch her before the letter has fully taken hold. You sit together at the table and say it plainly:
+<div class="dlg"><span class="spk">Macbeth</span>"It is a prediction, not a command. A probability, not a fate. The question is not whether I will be king — the question is whether I choose to become a murderer."</div>
+She stares at you for a long time. <em>Framing matters enormously. You have changed the equation she is trying to solve.</em>`,
+choices:[
+{text:'Propose a long-term strategy: earn Duncan\'s public favour and influence succession through merit and alliance.',tag:'Political Science',dark:false,
+fx:{resolve:+15,influence:-10,suspicion:-10,exposure:-10,trust:+10},next:'s_council',
+impact:'Legitimate strategy channels ambition constructively and increases Duncan\'s trust. Lady Macbeth\'s hold weakens because her plan has a competitor.',
+logic:'Political Science: Institutionalised power-seeking is more stable and less dangerous than violent alternatives.'},
+{text:'Ask her to help you design a system that makes murder structurally impossible — use her planning mind as a prevention tool.',tag:'Engineering',dark:false,
+fx:{resolve:+20,influence:-5,exposure:-15,suspicion:-15,opportunity:-15},next:'s_remove_self',
+impact:'Redirecting her planning capability toward prevention is the most effective use of her intelligence. Opportunity drops because she now knows every vulnerability and helps close each one.',
+logic:'Engineering: The same analytical capability that designs crimes can prevent them — if the objective is changed.'},
+{text:'Tell her the prophecy excited you too — and ask her honestly: "What would you do in my position?"',tag:'Risk',dark:false,
+fx:{influence:+15,guilt:+10,resolve:-10,exposure:+10},next:'s_let_plan',
+impact:'Honest vulnerability invites her plan. Your influence score rises as she gains your confidence — but so does your guilt as the plan becomes real in conversation.',
+logic:'Psychology: Sharing ambition openly with a high-drive actor invites their plan into the space. The conversation itself becomes a commitment device.'},
+]
+},
+// ── Letting the plan build ────────────────────────────────────────
+s_let_plan:{
+act:'Act I · Scene IV',title:'The Machinery Builds',steam:'Causal Systems',
+body:`You let her plan. <em>And you watch the system construct itself around you, one quiet act at a time.</em> Each moment of passivity is a vote for what comes next. Each silence compounds.
+<br><br>The guards' wine is selected. The dagger positioned. Lady Macbeth has identified the exact window: two hours after the feast, before the pre-dawn watch changes.
+<div class="dlg"><span class="spk">Lady Macbeth</span>"Leave all the rest to me."</div>
+<em>You still have a choice. But the window is closing.</em>`,
+choices:[
+{text:'Stop it now — confess the entire plan to Duncan at the feast tonight.',tag:'Ethics',dark:false,
+fx:{resolve:+30,exposure:+50,suspicion:+35,influence:-40,trust:+15,guilt:-20},next:'s_confess',
+impact:'Late confession destroys the plan entirely but at high personal cost. Trust recovers because honesty at great personal risk is credible. Suspicion rises temporarily.',
+logic:'Ethics: Late intervention is costlier than early intervention but still decisively changes outcomes. The moral act remains the moral act regardless of timing.'},
+{text:'Quietly sabotage the plan — move guards, change the wine, dismantle each element without explanation.',tag:'Engineering',dark:false,
+fx:{resolve:+15,influence:-15,suspicion:+10,exposure:+5,opportunity:-30},next:'s_guard',
+impact:'Silent sabotage removes opportunity without triggering confrontation. Opportunity drops sharply. Suspicion rises slightly as patterns appear inconsistent.',
+logic:'Engineering: Dismantling structural conditions for crime is effective even when direct confrontation is unavailable.'},
+{text:'Confront Lady Macbeth directly: "I know what you\'ve planned. I know every detail. And I will not do it."',tag:'Ethics',dark:false,
+fx:{resolve:+20,influence:-25,guilt:-15,exposure:-10},next:'s_refuse',
+impact:'Direct confrontation with full knowledge is more powerful than vague refusal. Her influence drops significantly because she cannot claim you didn\'t understand.',
+logic:'Psychology: Refusing with full information signals genuine agency rather than cowardice, which removes the manipulator\'s most effective lever.'},
+{text:'You\'ve come this far. You go through with it.',tag:'⚠ Dark Path',dark:true,
+fx:{resolve:-50,influence:+20,suspicion:+70,exposure:+90,guilt:+50,trust:-70},next:'end_murder',
+impact:'The causal chain has been left completely intact through repeated passive decisions. Every variable now points toward murder.',
+logic:'Causal Systems: Systems produce their natural outputs when no external force disrupts them. You chose not to disrupt.'},
+]
+},
+// ── Refusal scene ─────────────────────────────────────────────────
+s_refuse:{
+act:'Act I · Scene IV',title:'The Line Held',steam:'Ethics',
+body:`You say it clearly and do not waver.
+<div class="dlg"><span class="spk">Macbeth</span>"We will proceed no further in this business. He hath honoured me of late, and I have bought golden opinions from all sorts of people which would be worn now in their newest gloss, not cast aside so soon."</div>
+Lady Macbeth calls you a coward. The word lands with physical force. You feel its hook. <em>But you also recognise it for exactly what it is: shame deployed as a lever to override ethical reasoning.</em>`,
+choices:[
+{text:'Name it precisely: "You are using shame to override my reasoning. I see the mechanism. My answer is still no."',tag:'Psychology',dark:false,
+fx:{resolve:+25,influence:-35,suspicion:-5,guilt:-10},next:'s_name_manip',
+impact:'Named manipulation loses its power immediately. Lady Macbeth\'s hold drops sharply. Your resolve strengthens because you\'ve demonstrated conscious immunity to the technique.',
+logic:'Behavioural Psychology: A manipulation technique, once named and observed by its target, cannot function. It requires unconscious processing.'},
+{text:'The shame works. Something cracks inside you and you begin to waver.',tag:'⚠ Risk',dark:true,
+fx:{resolve:-20,influence:+25,exposure:+15,guilt:+20},next:'s_waver',
+impact:'The emotional hook lands. Guilt and influence compound against your resolve. The waver is the most dangerous state — you are neither committed nor free.',
+logic:'Psychology: Identity attacks succeed when they map onto existing insecurities. Macbeth\'s concept of manhood makes him specifically vulnerable to this technique.'},
+{text:'Leave the room. Find Banquo immediately. You need a rational voice before you make any decision.',tag:'Systems',dark:false,
+fx:{resolve:+15,influence:-20,suspicion:-5,loyalty:+10},next:'s_banquo',
+impact:'External rational input before a high-pressure decision is a significant protective factor. Banquo\'s loyalty deepens as you demonstrate trust in him.',
+logic:'Systems Thinking: Introducing a rational external check before a high-stakes decision reduces the probability of a cognitively compromised choice.'},
+{text:'Ask her: "If the roles were reversed — if I asked you to murder a guest in our home — what would you say?"',tag:'Ethics',dark:false,
+fx:{resolve:+10,influence:-15,guilt:-10,suspicion:-5},next:'s_mirror_question',
+impact:'The mirror question forces her to occupy your moral position. It rarely changes committed manipulators but can introduce doubt into the system.',
+logic:'Ethics: Ethical reciprocity arguments — "would you accept this if applied to you?" — are powerful because they apply universal moral logic to specific situations.'},
+]
+},
+// ── Redirect Lady Macbeth ─────────────────────────────────────────
+s_redirect:{
+act:'Act I · Scene IV',title:'Redirecting the Drive',steam:'Behavioural Engineering',
+body:`You propose something specific: <em>"Your intelligence is extraordinary. What if it were used to build our rise through alliance, reputation, and political positioning — not through blood?"</em>
+<br><br>Lady Macbeth pauses. The fire in her doesn't diminish — it searches for a new channel. She begins mapping: which lords are dissatisfied, which alliances could elevate you, which symbolic acts would deepen Duncan's regard.
+<div class="dlg"><span class="spk">Lady Macbeth</span>"You shall put this night's great business into my dispatch — but a different business now."</div>
+<em>The same capability, redirected. One critical link in the causal chain has been replaced.</em>`,
+choices:[
+{text:'Formalise it immediately — propose to Duncan that you host a great council of lords and publicly support Malcolm\'s succession.',tag:'Political Science',dark:false,
+fx:{resolve:+20,suspicion:-20,influence:-5,exposure:-20,trust:+20,loyalty:+15},next:'end_redeemed',
+impact:'Public institutional support for Malcolm removes you from the succession equation permanently. Duncan\'s trust surges. Your loyalty score climbs as lords observe your commitment.',
+logic:'Political Science: Voluntarily removing yourself from a contested succession is a credibility signal that dramatically increases your political capital.'},
+{text:'Proceed carefully — run each political move past Banquo as a rational check to prevent overreach.',tag:'Systems',dark:false,
+fx:{resolve:+15,influence:+5,suspicion:-15,exposure:-15,loyalty:+20},next:'end_strategic',
+impact:'Banquo as a check prevents political moves from drifting toward danger. Loyalty among allies grows as they observe collaborative decision-making.',
+logic:'Systems Thinking: Distributed decision-making with rational oversight prevents single-point failures and bias accumulation.'},
+{text:'Ask Lady Macbeth to draft a specific five-year political strategy — give her the project of legitimate power.',tag:'Engineering',dark:false,
+fx:{resolve:+10,influence:-10,exposure:-10,suspicion:-10,trust:+10},next:'s_council',
+impact:'Giving her a concrete assignment channels energy constructively and reduces idle planning of alternatives. She becomes invested in the legitimate path.',
+logic:'Engineering: Assigning a specific high-value task to a high-drive actor leaves less cognitive space for destructive alternatives.'},
+]
+},
+// ── Go public ─────────────────────────────────────────────────────
+s_go_public:{
+act:'Act I · Scene IV',title:'Radical Transparency',steam:'Engineering · Ethics',
+body:`You seek an audience with Duncan and tell him everything — the prophecy, your private ambition, the dangerous direction of your thoughts. The room goes completely still.
+<div class="dlg"><span class="spk">Macbeth</span>"My liege — I have received words that tempt my loyalty. I lay them at your feet, that you may judge their weight and guard against their poison in me."</div>
+<em>This is radical transparency as a systemic intervention: you have removed secrecy — the primary load-bearing variable of the murder plan.</em> Duncan looks at you for a very long time. Then something shifts.`,
+choices:[
+{text:'Continue: "And therefore I ask that you increase your personal guard and keep Malcolm close during this visit."',tag:'Engineering',dark:false,
+fx:{resolve:+30,suspicion:-30,exposure:+40,influence:-30,trust:+30,opportunity:-25},next:'end_hero',
+impact:'The complete intervention: transparency plus structural prevention. Duncan\'s trust reaches its maximum. Opportunity drops as he takes protective measures. Lady Macbeth\'s plan becomes impossible.',
+logic:'Engineering + Ethics: Combining full disclosure with structural prevention addresses both the motivational and situational variables of the causal chain.'},
+{text:'Regret the disclosure immediately — try to walk it back as "a strange dream, nothing more."',tag:'Risk',dark:false,
+fx:{resolve:-15,suspicion:+25,exposure:+30,trust:-20,guilt:+25},next:'s_waver',
+impact:'Retracting a confession is worse than not confessing. Trust collapses. Suspicion spikes because the retraction appears dishonest. You are now in the worst of both worlds.',
+logic:'Psychology: Partial disclosure followed by retraction signals deception more strongly than either full disclosure or silence.'},
+{text:'Tell Duncan the prophecy only — not your private ambition. Test his reaction before going further.',tag:'Caution',dark:false,
+fx:{resolve:+10,suspicion:+10,trust:+10,influence:-15,exposure:+15},next:'s_council',
+impact:'Partial disclosure is less powerful than full transparency but safer. Duncan\'s trust rises modestly. The ambiguity of your motivation allows room for a graceful next step.',
+logic:'Information Theory: Staged disclosure allows the recipient to process information incrementally, reducing the shock that can produce unpredictable reactions.'},
+]
+},
+// ── Remove self from equation ─────────────────────────────────────
+s_remove_self:{
+act:'Act II · Scene I',title:'Dismantling the Machine',steam:'Systems Engineering',
+body:`You work methodically through every variable that enables murder:
+<br><br><strong>Opportunity:</strong> Duncan's quarters moved. Guards doubled. All entrances to his wing locked.
+<br><strong>Secrecy:</strong> You speak openly with three trusted lords about the "strange temptations of prophecy" — nothing specific, but enough to create observers.
+<br><strong>Isolation:</strong> You remain publicly visible all evening, always with others. Never alone. Always accountable.
+<br><br><em>You have engineered an environment in which the crime is structurally impossible.</em> Lady Macbeth senses the net closing and confronts you directly.`,
+choices:[
+{text:'"I know what you were planning. I\'ve made it impossible. I forgive you — let us speak no more of this night."',tag:'Ethics',dark:false,
+fx:{resolve:+25,influence:-25,suspicion:-20,exposure:-20,trust:+10,loyalty:+10},next:'end_hero',
+impact:'Forgiveness paired with prevention is the most complete intervention. It closes both the situational opportunity and the relational wound. Trust and loyalty strengthen.',
+logic:'Ethics + Engineering: Addressing both the structural conditions and the relational dynamics produces the most stable long-term outcome.'},
+{text:'Say nothing. Let the collapsed plan speak for itself. Walk past her and go to Duncan.',tag:'Strategy',dark:false,
+fx:{resolve:+15,influence:-15,suspicion:-15,trust:+15},next:'end_strategic',
+impact:'Silent prevention is less emotionally satisfying but equally effective structurally. Lady Macbeth has no plan to execute. Duncan is safe.',
+logic:'Strategy: Sometimes the most effective intervention requires no explanation. The changed outcome is the communication.'},
+{text:'Confront her with the complete analysis: show her exactly which variables you identified and disrupted.',tag:'Systems',dark:false,
+fx:{resolve:+20,influence:-20,suspicion:-10,loyalty:+5,trust:+10},next:'s_confront_analysis',
+impact:'Presenting the systems analysis to Lady Macbeth demonstrates your full awareness and closes future planning attempts by making clear you understand the methodology.',
+logic:'Information Theory: Full disclosure of your analytical approach prevents future manipulation by removing the information asymmetry she relied on.'},
+]
+},
+// ── Guard Duncan ──────────────────────────────────────────────────
+s_guard:{
+act:'Act II · Scene I',title:'The Night of the Visit',steam:'Engineering',
+body:`You have changed the variables. Duncan sleeps in a different room than planned. The window in Lady Macbeth's timeline has closed by four hours.
+<br><br>At 2am you hear footsteps. Lady Macbeth — dagger in hand — moving through a corridor that leads to the wrong wing entirely. She stops. Her plan has no target. She stands in the dark, holding a weapon with nowhere to go.
+<div class="dlg"><span class="spk">Lady Macbeth</span>"Had he not resembled my father as he slept, I had done it…"</div>
+<em>Even she was not fully committed. The system was doing the work for her. You have dismantled the system.</em>`,
+choices:[
+{text:'Go to her. Take the dagger gently. "It\'s over. We will not speak of this night — ever."',tag:'Ethics',dark:false,
+fx:{resolve:+20,influence:-10,suspicion:-5,guilt:-10,loyalty:+5},next:'end_strategic',
+impact:'Taking the dagger ends the immediate danger and establishes a pact of silence. Her influence over you decreases as you have demonstrated clear leadership in the crisis.',
+logic:'Ethics: Decisive, compassionate action at the critical moment establishes authority and closes the dangerous dynamic.'},
+{text:'Wake the household — "There is an intruder in the castle!" Controlled exposure, everything visible.',tag:'Transparency',dark:false,
+fx:{resolve:+15,suspicion:+40,exposure:+50,influence:-30,trust:+5,opportunity:-40},next:'s_confess',
+impact:'Full exposure eliminates all possibility of future attempts and dramatically reduces opportunity. Court suspicion spikes but the king is safe and the plan is permanently destroyed.',
+logic:'Engineering: Maximum exposure of a plan destroys it completely and creates a structural barrier against future attempts.'},
+{text:'Watch from the shadows. See where she goes. Gather information before you act.',tag:'Risk',dark:false,
+fx:{resolve:-10,guilt:+20,influence:+5,suspicion:+5},next:'s_watch_night',
+impact:'Passive observation in a dangerous moment accumulates guilt and slightly strengthens Lady Macbeth\'s position. You know more — but you also failed to prevent what you could see.',
+logic:'Risk: Information gathering has value, but in a crisis, the cost of observation over intervention compounds rapidly.'},
+]
+},
+// ── Banquo guards Duncan ──────────────────────────────────────────
+s_banquo_guard:{
+act:'Act II · Scene I',title:'The Trusted Sentinel',steam:'Distributed Systems',
+body:`Banquo agrees without question — he trusts you entirely. He takes up a quiet position near Duncan's door that evening, ostensibly walking late due to "troubled dreams."
+<div class="dlg"><span class="spk">Banquo</span>"Merciful powers, restrain in me the cursed thoughts that nature gives way to in repose."</div>
+<em>He is already wrestling with the prophecy himself.</em> You realise he has also been carrying this weight, alone, since the heath. His presence that night ensures Duncan survives untouched. But morning comes with a question: does Banquo deserve the full truth?`,
+choices:[
+{text:'Tell Banquo everything — the full prophecy, Lady Macbeth\'s plan, and how you prevented it.',tag:'Transparency',dark:false,
+fx:{loyalty:+25,resolve:+15,influence:-20,trust:+10,suspicion:-10},next:'end_strategic',
+impact:'Full disclosure to Banquo converts him from a passive ally to an informed guardian. Loyalty reaches its peak. Lady Macbeth\'s influence drops because a second check now exists.',
+logic:'Information Theory: Distributing accurate information to trusted allies creates redundant protection against future threats.'},
+{text:'Thank him vaguely and say nothing more. Preserve the secret to protect Lady Macbeth.',tag:'Caution',dark:false,
+fx:{loyalty:-5,guilt:+15,resolve:-5},next:'s_morning_after',
+impact:'Protecting Lady Macbeth costs you loyalty and increases guilt. Banquo senses something more was happening and the incomplete truth creates distance between you.',
+logic:'Ethics: Partial truth to protect a guilty party imposes the moral cost of the concealment on the relationship with an innocent ally.'},
+{text:'Tell him: "I suspected a threat to the king tonight. I needed your eyes. The king is safe. That\'s all I can say."',tag:'Strategy',dark:false,
+fx:{loyalty:+15,resolve:+10,guilt:-5,suspicion:-5},next:'s_council',
+impact:'Partial truth honours the relationship without fully exposing Lady Macbeth. Banquo respects the discretion. Loyalty grows through the implied trust.',
+logic:'Strategy: Calibrated disclosure — sharing enough to preserve the relationship and the alliance without exceeding what the situation requires.'},
+]
+},
+// ── Council approach ──────────────────────────────────────────────
+s_council:{
+act:'Act II · Scene I',title:'The Succession Council',steam:'Political Science',
+body:`Duncan receives your proposal with surprise, then warmth. A formal council of lords. Malcolm confirmed through institutional process. Succession made a matter of structure, not violence.
+<div class="dlg"><span class="spk">Duncan</span>"This is wisdom, Macbeth. I had not thought you so concerned with lasting peace."</div>
+You are elevated — not through blood, but through institutional design. Lady Macbeth is privately furious but publicly has nothing to argue with. <em>The witches' prophecy may yet come true — through a path that requires no murder at all.</em>`,
+choices:[
+{text:'Continue building over years — become Duncan\'s most trusted adviser and let succession emerge naturally.',tag:'Long-term Strategy',dark:false,
+fx:{resolve:+20,suspicion:-25,influence:-10,exposure:-20,trust:+25,loyalty:+15},next:'end_strategic',
+impact:'Long-term institutional building is the most stable path. Trust and loyalty reach their peak. Lady Macbeth\'s influence withers as legitimate progress makes her plan unnecessary.',
+logic:'Political Science: Sustained institutional trust is more durable than any single dramatic intervention and positions you for genuine succession.'},
+{text:'Fully confide the prophecy to Duncan — complete transparency, complete trust.',tag:'Ethics',dark:false,
+fx:{resolve:+25,suspicion:-20,influence:-20,exposure:+10,trust:+30},next:'end_hero',
+impact:'Full transparency to Duncan, from a position of political strength, is maximally credible. His trust becomes unconditional. Lady Macbeth\'s plan loses its entire foundation.',
+logic:'Ethics + Political Science: Transparency is most powerful when the actor has demonstrated loyalty through institutional means first — it cannot be dismissed as naive.'},
+{text:'Use the council as a platform to publicly denounce the dangers of unchecked ambition in any Scottish lord.',tag:'Systems',dark:false,
+fx:{resolve:+15,suspicion:-15,influence:-15,loyalty:+20,trust:+15},next:'end_redeemed',
+impact:'Public denunciation of the general principle — without naming yourself — creates social accountability structures that prevent future versions of your own temptation.',
+logic:'Systems Thinking: Addressing the systemic conditions that produce dangerous ambition, not just your individual case, creates durable societal protection.'},
+]
+},
+// ── Name the manipulation ─────────────────────────────────────────
+s_name_manip:{
+act:'Act II · Scene I',title:'Naming the Mechanism',steam:'Behavioural Psychology',
+body:`You do something Lady Macbeth has never encountered: you name her technique while she is still using it.
+<div class="dlg"><span class="spk">Macbeth</span>"You are attacking my concept of masculinity to produce an action your logic cannot justify on its own merits. I see the mechanism precisely. It will not work."</div>
+There is a very long silence. Then something shifts in her expression — not defeat, but something approaching genuine respect. <em>She has never been truly seen before.</em> The manipulation stops because it cannot function once named and observed.`,
+choices:[
+{text:'Offer her something real: "Help me find a legitimate path. Your intelligence is the most formidable I\'ve encountered."',tag:'Behavioural',dark:false,
+fx:{resolve:+10,influence:-15,exposure:-10,suspicion:-10,loyalty:+10},next:'s_redirect',
+impact:'Genuine acknowledgment of her capability, immediately after demonstrating immunity to her manipulation, repositions the relationship entirely. She becomes a potential ally.',
+logic:'Behavioural Engineering: Validating capability while refusing to be manipulated by it creates a new dynamic where genuine collaboration becomes possible.'},
+{text:'Go immediately to Duncan and propose the formal succession council.',tag:'Political',dark:false,
+fx:{resolve:+20,suspicion:-15,influence:-20,trust:+15},next:'s_council',
+impact:'Moving directly to institutional action consolidates the psychological victory. Lady Macbeth has no counter-move to legitimate political process.',
+logic:'Political Science: Following psychological de-escalation with institutional action prevents the situation from resetting.'},
+{text:'Ask her: "What does it cost you to plan this? What happens to you in the world you\'re building?"',tag:'Psychology',dark:false,
+fx:{resolve:+10,influence:-10,guilt:-5,loyalty:+5},next:'s_lady_cost',
+impact:'Asking about her internal experience shifts the conversation from manipulation to reflection. She has never been asked to consider her own wellbeing within the plan.',
+logic:'Psychology: Empathic challenge — asking someone to consider the cost to themselves — can disrupt a predetermined path more effectively than direct refusal.'},
+]
+},
+// ── Test Banquo ───────────────────────────────────────────────────
+s_test_banquo:{
+act:'Act I · Scene IV',title:'The Question That Costs',steam:'Psychology',
+body:`Banquo stares at you for a long moment. His expression does not change but something behind his eyes does.
+<div class="dlg"><span class="spk">Banquo</span>"So I lose none in seeking to augment it, but still keep my bosom franchised and allegiance clear, I shall be counselled."</div>
+He has given you a conditional answer. <em>He will support you only if it costs him nothing — and allegiance is preserved.</em> He senses what the question really meant. He withdraws from you slightly and begins to watch.`,
+choices:[
+{text:'Walk it back immediately: "I meant nothing by it — I simply value your judgement on all things." Repair the damage.',tag:'Damage Control',dark:false,
+fx:{loyalty:+10,suspicion:-5,resolve:+5},next:'s_council',
+impact:'Quick recovery limits the damage. Banquo is not fully reassured but the question fades. Loyalty partially recovers.',
+logic:'Interpersonal Dynamics: Prompt, credible retraction of a suspicious statement reduces the lasting damage to a relationship.'},
+{text:'Lean into it — explain the prophecy fully and ask for his genuine counsel.',tag:'Transparency',dark:false,
+fx:{loyalty:+15,resolve:+10,suspicion:+10,trust:+5},next:'s_banquo',
+impact:'Full transparency recovers the relationship and gains Banquo as a genuine ally. Court suspicion rises slightly as two senior lords are seen in private intense conversation.',
+logic:'Information Theory: Complete disclosure, when timed correctly, is more trust-building than staged disclosure — it signals genuine confidence in the other person.'},
+{text:'Note his conditional loyalty. Say nothing more. Begin to wonder if Banquo will need to be managed.',tag:'⚠ Dark Path',dark:true,
+fx:{loyalty:-30,suspicion:+15,resolve:-15,guilt:+20},next:'s_waver',
+impact:'Treating a loyal ally as a threat is the beginning of the original tragedy\'s spiral. Loyalty collapses. Guilt rises as you begin to apply murderous logic to an innocent person.',
+logic:'Causal Systems: The original Macbeth\'s error — extending murderous logic from one target to all perceived threats — begins precisely here.'},
+]
+},
+// ── Alone at night ────────────────────────────────────────────────
+s_alone_night:{
+act:'Act I · Scene IV',title:'The Dagger Vision',steam:'Psychology',
+body:`You walk the castle alone. The torches throw long shadows. And then — you see it. Or think you see it.
+<div class="dlg"><span class="spk">Macbeth</span>"Is this a dagger which I see before me, the handle toward my hand? Come, let me clutch thee — I have thee not, and yet I see thee still."</div>
+<em>The dagger is not real. But what it represents is.</em> Your mind is generating the act before you have decided to commit it. This is what unchecked ambition in isolation does — it begins to rehearse its own conclusions.`,
+choices:[
+{text:'Put yourself to sleep immediately. Do nothing tonight. Revisit this with Banquo in the morning.',tag:'Delay',dark:false,
+fx:{resolve:+10,guilt:-10,influence:-5,opportunity:-5},next:'s_banquo',
+impact:'Deferral is a powerful tool against impulsive action. Sleeping removes the immediate danger of the psychological state you\'re in. Morning brings Banquo\'s rationality.',
+logic:'Psychology: Introducing a time delay between emotional state and decision dramatically reduces the probability of decisions made under cognitive distortion.'},
+{text:'Walk to Lady Macbeth\'s room and tell her: "I see what I\'m becoming. I want us to find another way."',tag:'Vulnerability',dark:false,
+fx:{resolve:+15,influence:-10,guilt:-15,exposure:-5},next:'s_redirect',
+impact:'Genuine vulnerability — sharing your fear about who you\'re becoming — can reach past Lady Macbeth\'s planning mind to something older and more human in her.',
+logic:'Behavioural Science: Authentic emotional disclosure can disrupt a manipulative dynamic more effectively than rational argument.'},
+{text:'Walk toward the king\'s room. Let the vision guide you.',tag:'⚠ Dark Path',dark:true,
+fx:{resolve:-40,guilt:+30,influence:+20,suspicion:+40,opportunity:+20},next:'s_waver',
+impact:'Following the vision without resistance collapses all the rational distance you\'ve maintained. You are now in the most dangerous psychological state of the simulation.',
+logic:'Psychology: The hallucinated dagger is Macbeth\'s own mind making the decision for him — cognitive commitment before conscious consent. Recognising this is the only defence.'},
+]
+},
+// ── Lady Macbeth cost ─────────────────────────────────────────────
+s_lady_cost:{
+act:'Act II · Scene I',title:'The Human Inside the Plan',steam:'Psychology',
+body:`The question lands in unexpected territory. Lady Macbeth has never been asked to examine herself within this plan — only to execute it.
+<div class="dlg"><span class="spk">Lady Macbeth</span>"…Come, thick night, and pall thee in the dunnest smoke of hell, that my keen knife see not the wound it makes, nor heaven peep through the blanket of the dark…"</div>
+<em>She was asking the darkness to make her blind to the cost.</em> She already knows the cost. The plan requires her to not-see it. Your question has made that impossible. She sits down heavily. Something in her architecture has shifted.`,
+choices:[
+{text:'Sit beside her. Say nothing for a long time. Then: "I don\'t want to do this to you either."',tag:'Empathy',dark:false,
+fx:{resolve:+15,influence:-25,guilt:-10,loyalty:+10},next:'s_redirect',
+impact:'Genuine empathy — addressing her wellbeing within the scenario — reaches the person behind the plan. Lady Macbeth\'s hold on you decreases because the relationship has shifted from manipulation to genuine connection.',
+logic:'Behavioural Science: Empathic connection changes the social contract of a relationship, making manipulative dynamics harder to maintain.'},
+{text:'Press further: "The plan requires you to stop being human. Is that a price you\'re willing to pay?"',tag:'Ethics',dark:false,
+fx:{resolve:+20,influence:-30,guilt:-15,exposure:-15},next:'end_redeemed',
+impact:'The ethical cost argument, made to someone already aware of the cost, completes the disruption. Lady Macbeth\'s plan requires her to dehumanise herself. Naming this out loud makes it impossible to unsee.',
+logic:'Ethics: Articulating the full moral cost to the actor, rather than to their target, is often more persuasive than external moral argument.'},
+{text:'Recognise this as another tactic — emotional display to regain your sympathy. Hold firm.',tag:'Risk',dark:false,
+fx:{resolve:+5,influence:-5,guilt:+10,suspicion:+5},next:'s_refuse',
+impact:'Scepticism protects your resolve but may misread a genuine moment of vulnerability. Guilt rises because you may have refused connection when it was real.',
+logic:'Psychology: In high-manipulation contexts, distinguishing genuine emotional display from tactical vulnerability is extremely difficult. Both require a response, but different ones.'},
+]
+},
+// ── Morning after ─────────────────────────────────────────────────
+s_morning_after:{
+act:'Act II · Scene II',title:'The Morning Light',steam:'Ethics',
+body:`Dawn breaks over Inverness. Duncan wakes. Unaware of what almost happened, he greets you warmly at breakfast.
+<div class="dlg"><span class="spk">Duncan</span>"I have begun to plant thee, and will labour to make thee full of growing."</div>
+<em>He is investing in you. And you have, with Banquo's unknowing help, just protected him from your own household.</em> The guilt sits heavy. But you are at a crossroads about what to do with the morning.`,
+choices:[
+{text:'Tell Duncan everything. Now. While the night\'s near-miss is still real in your memory.',tag:'Ethics',dark:false,
+fx:{resolve:+25,trust:+20,guilt:-25,suspicion:+10,influence:-20},next:'s_confess',
+impact:'Morning confession, after a night of near-miss, is the most credible form of disclosure. Duncan\'s trust dramatically increases because you are confessing despite nothing having happened.',
+logic:'Ethics: Confessing a near-crime when there are no consequences yet is the highest-cost, most credible form of transparency.'},
+{text:'Say nothing. Carry the secret. Let the morning be a new beginning — you\'ve prevented it, that\'s enough.',tag:'Caution',dark:false,
+fx:{guilt:+15,resolve:-5,loyalty:-5},next:'end_strategic',
+impact:'Silence preserves the surface but loads you with guilt. The relationship with Banquo has a hairline fracture. But Duncan lives and the plan is over.',
+logic:'Strategy: Sometimes the most sustainable outcome involves carrying private knowledge of a close call rather than disclosing and re-opening a crisis.'},
+{text:'Ask Duncan to give Lady Macbeth a significant formal role in his court — redirect her energy through official channels.',tag:'Behavioural',dark:false,
+fx:{influence:-20,trust:+15,loyalty:+10,suspicion:-10,resolve:+10},next:'end_redeemed',
+impact:'Formal institutional responsibility redirects Lady Macbeth\'s considerable capability into legitimate channels. Her influence over you decreases as she gains public power independently.',
+logic:'Behavioural Engineering: Institutional roles provide high-drive personalities with legitimate outlets, reducing pressure toward destructive alternatives.'},
+]
+},
+// ── Mirror question ───────────────────────────────────────────────
+s_mirror_question:{
+act:'Act I · Scene V',title:'The Mirror Turned',steam:'Ethics',
+body:`Lady Macbeth is quiet for a long moment. The question has placed her inside your position. Then:
+<div class="dlg"><span class="spk">Lady Macbeth</span>"…I would, while it was smiling in my face, have plucked my nipple from his boneless gums and dashed the brains out…"</div>
+She answers with a declaration of extremity — she would do anything. <em>But the answer reveals something important: she is willing to transgress all bonds — not because she feels nothing, but because she is supressing everything.</em> The plan costs her too. She just refuses to see it.`,
+choices:[
+{text:'Name what you just heard: "You\'ve just described the destruction of every human feeling in yourself. That\'s the true cost."',tag:'Psychology',dark:false,
+fx:{resolve:+15,influence:-20,guilt:-10},next:'s_lady_cost',
+impact:'Identifying the internal cost of the plan to Lady Macbeth herself shifts the conversation from morality to self-interest — often more effective.',
+logic:'Psychology: Arguments from self-harm are often more persuasive than arguments from harm to others when addressing a self-determined actor.'},
+{text:'Accept that she is beyond persuasion tonight. Go find Banquo.',tag:'Systems',dark:false,
+fx:{resolve:+10,loyalty:+10,influence:-5},next:'s_banquo',
+impact:'Strategic retreat from an unwinnable argument preserves your resolve and redirects effort toward a more productive ally.',
+logic:'Systems Thinking: Recognising when a direct intervention has reached its limit and redirecting resources is efficient, not cowardly.'},
+{text:'Respond: "Then we are very different. And perhaps that is the answer."',tag:'Ethics',dark:false,
+fx:{resolve:+20,influence:-25,guilt:-10,loyalty:+5},next:'s_refuse',
+impact:'Declaring the fundamental difference in values establishes a clear moral boundary. Lady Macbeth\'s hold decreases because you have explicitly refused to share her framework.',
+logic:'Ethics: Articulating a fundamental value difference, rather than arguing a specific case, ends the negotiation on the deepest level.'},
+]
+},
+// ── Confront with analysis ────────────────────────────────────────
+s_confront_analysis:{
+act:'Act II · Scene II',title:'Showing the Workings',steam:'Systems Analysis',
+body:`You sit Lady Macbeth down and walk through it methodically. You show her every variable you identified, every link in the causal chain you broke, every intervention you made.
+<div class="dlg"><span class="spk">Macbeth</span>"Secrecy. Opportunity. My unexamined ambition. Your unredirected capability. I found each one and I dismantled each one. The plan was never possible from the moment I understood its architecture."</div>
+She listens. Then, slowly:
+<div class="dlg"><span class="spk">Lady Macbeth</span>"You saw all of it."</div>
+<em>"Every part," you say. "And I chose differently."</em>`,
+choices:[
+{text:'Close it permanently: "I will not speak of this again. But neither will I forget it. We move forward — together."',tag:'Ethics',dark:false,
+fx:{resolve:+15,influence:-20,loyalty:+15,trust:+10,guilt:-10},next:'end_hero',
+impact:'The complete intervention ends with a pact that acknowledges what happened while committing to what comes next. Lady Macbeth\'s hold is minimised because she now knows you see through all of it.',
+logic:'Systems + Ethics: Full systemic understanding, combined with a forward-facing ethical commitment, is the strongest possible closing of this chapter.'},
+{text:'Ask her: "What would it take for you to trust that I can get us there without this?"',tag:'Behavioural',dark:false,
+fx:{resolve:+10,influence:-10,loyalty:+10},next:'end_strategic',
+impact:'Asking for the conditions of trust invites her into problem-solving rather than adversarial positioning. The relationship shifts from power struggle to collaboration.',
+logic:'Behavioural Engineering: Asking "what would it take?" converts a fixed position into a negotiable one and invites cooperative problem-solving.'},
+]
+},
+// ── Watch at night ────────────────────────────────────────────────
+s_watch_night:{
+act:'Act II · Scene I',title:'The Observer',steam:'Risk Management',
+body:`You watch from the shadows. Lady Macbeth moves through the corridor, dagger in hand, searching for a door that isn't where she planned. She stops, confused. The guards are wrong. The room is wrong. Everything is wrong.
+<br><br>She returns to her room without having acted. She doesn't know you watched. And now you carry something heavy: the complete knowledge of what she intended, held in silence, alone.`,
+choices:[
+{text:'Go to her room now. Take the dagger. "I moved the guards. I knew. It\'s over."',tag:'Ethics',dark:false,
+fx:{resolve:+20,influence:-15,guilt:-10,loyalty:+5},next:'end_strategic',
+impact:'Acting immediately on what you observed prevents future attempts and establishes clear authority. Lady Macbeth\'s hold decreases because the deception between you is lifted.',
+logic:'Ethics: Disclosure of observation, when paired with decisive action, is more effective than continued concealment of what you know.'},
+{text:'Say nothing to her. Go to Duncan in the morning and request he leave Inverness a day early, citing security concerns.',tag:'Strategy',dark:false,
+fx:{resolve:+10,suspicion:+15,trust:+5,opportunity:-30},next:'s_morning_after',
+impact:'Removing Duncan physically eliminates the opportunity variable entirely. Suspicion rises slightly as your urgency seems unexplained but Duncan\'s safety is secured.',
+logic:'Engineering: Changing the physical location of the target removes opportunity regardless of the actor\'s intent or capability.'},
+{text:'Do nothing. She failed by herself. Maybe this ends here.',tag:'Passive',dark:false,
+fx:{resolve:-10,guilt:+20,influence:+10,opportunity:+15},next:'s_waver',
+impact:'Passive observation of a failed attempt, followed by inaction, leaves all variables intact. Lady Macbeth will try again. Your guilt increases because you watched and did nothing.',
+logic:'Systems Thinking: A failed attempt in an intact system is not a resolved problem — it is an iteration. The system will produce another attempt.'},
+]
+},
+// ── Waver ─────────────────────────────────────────────────────────
+s_waver:{
+act:'Act II · Scene I',title:'The Wavering',steam:'Psychology',
+body:`Doubt corrodes your resolve. <em>The prophecy feels less like data and more like hunger.</em> You walk the castle at night, noting guards, cataloguing entrances, the way the torches create blind spots.
+<br><br>Lady Macbeth finds you at the great window. She says nothing. She simply holds out the dagger — handle first. The gesture says everything.
+<div class="dlg"><span class="spk">Macbeth</span>"Is this a dagger which I see before me, the handle toward my hand?"</div>
+<em>This is the fulcrum. One choice remains.</em>`,
+choices:[
+{text:'Drop the dagger on the floor. "No." Walk away. Find Banquo. Right now.',tag:'Ethics',dark:false,
+fx:{resolve:+30,influence:-30,suspicion:-10,guilt:-15},next:'s_refuse',
+impact:'The physical act of dropping the dagger — and the single word — is more powerful than any argument. Decisive physical rejection of the act resets your resolve dramatically.',
+logic:'Psychology: In a state of cognitive compromise, physical action rather than deliberation is the most effective intervention. The body commits before the mind equivocates.'},
+{text:'Take the dagger. Walk toward the king\'s chamber.',tag:'⚠ Dark Path',dark:true,
+fx:{resolve:-60,influence:+20,suspicion:+80,guilt:+50,trust:-70,loyalty:-30},next:'end_murder',
+impact:'Every variable that enables murder is at its peak. Every protective factor has been left unaddressed across repeated passive decisions. The causal chain is completely intact.',
+logic:'Causal Systems: This is the outcome of a system left undisrupted across every available intervention point. The system has produced its natural result.'},
+]
+},
+// ── Confess ───────────────────────────────────────────────────────
+s_confess:{
+act:'Act II · Scene II',title:'Confession',steam:'Ethics · Transparency',
+body:`You confess. Everything. To Duncan, to the court, to the candlelight. The room is completely still for a very long time.
+<br><br>Then Duncan speaks:
+<div class="dlg"><span class="spk">Duncan</span>"Had you not told me, I would have slept. Now I shall not — but I sleep less from grief than from gratitude."</div>
+<em>The confession destroys the plan entirely. It also transforms you.</em> There are consequences — certain privileges stripped, trust will take time to fully rebuild. But Duncan is alive. That is not nothing.`,
+choices:[
+{text:'Accept all consequences with grace and begin the slow work of rebuilding trust through sustained action.',tag:'Long-term',dark:false,
+fx:{resolve:+20,trust:+15,guilt:-25,suspicion:+15,influence:-30},next:'end_redeemed',
+impact:'Graceful acceptance of consequences is its own form of integrity. Trust, though damaged, begins to rebuild from a foundation of proven honesty.',
+logic:'Ethics: The willingness to accept consequences without resistance is the proof that the confession was genuine rather than strategic.'},
+{text:'Offer Duncan a specific plan for how you will make yourself structurally accountable going forward.',tag:'Engineering',dark:false,
+fx:{resolve:+25,trust:+25,guilt:-20,suspicion:+5,influence:-35},next:'end_hero',
+impact:'Combining confession with a concrete accountability structure is the most credible response. Duncan\'s trust recovers faster because you have not just admitted guilt but designed prevention.',
+logic:'Engineering + Ethics: Pairing confession with structural prevention is more credible than moral declaration alone — it demonstrates that you understand what went wrong.'},
+]
+},
+// ── Engage with her plan ──────────────────────────────────────────
+s_engage_plan:{
+act:'Act I · Scene V',title:'Inside the Architecture',steam:'Systems Thinking',
+body:`She lays out the plan with unsettling precision. You listen — and realise something important: <em>she has mapped the exact same causal chain you would have, but as a blueprint to follow rather than disrupt.</em>
+<br><br>Every link is visible to you now. The guards' rotation. The wine. The timing. The dagger's placement. And because you can see every link, you know exactly which ones to remove.
+<div class="dlg"><span class="spk">Macbeth</span>"The plan is a system. Every system has points of failure."</div>
+<em>The same intelligence that designed this can dismantle it.</em>`,
+choices:[
+{text:'Use what you\'ve learned to prevent it — quietly dismantle each link she\'s identified, one by one.',tag:'Engineering',dark:false,
+fx:{resolve:+20,influence:-10,exposure:-15,suspicion:-10,opportunity:-20},next:'s_remove_self',
+impact:'Understanding the plan\'s architecture gives you the exact intervention points needed to collapse it. You now know where to place guards, what to change, and how to close the window.',
+logic:'Systems Engineering: A complete understanding of a system\'s design is the prerequisite for its most efficient disruption.'},
+{text:'Pretend to agree with her plan — and secretly sabotage every element as it is prepared.',tag:'Covert',dark:false,
+fx:{resolve:-5,influence:-15,guilt:+15,opportunity:-20,exposure:+5},next:'s_guard',
+impact:'Active sabotage is effective but deceptive. Opportunity drops sharply. Guilt rises because you are deceiving your wife, even in service of preventing a greater wrong.',
+logic:'Risk Management: Covert prevention can be more efficient than open confrontation in high-resistance situations, but carries relational and moral costs.'},
+{text:'You nod along. Somewhere in the listening, the plan has become yours too.',tag:'⚠ Dark Path',dark:true,
+fx:{resolve:-20,influence:+25,guilt:+25,exposure:+20},next:'s_waver',
+impact:'Passive immersion in another\'s murderous plan is a form of consent. The plan has entered you. Your resolve weakens as her certainty fills the space your doubt occupied.',
+logic:'Psychology: Prolonged engagement with a plan without explicit rejection is a commitment device — the mind begins to treat considered ideas as intended actions.'},
+]
+},
+// ── Tell decision ─────────────────────────────────────────────────
+s_tell_decision:{
+act:'Act II · Scene I',title:'The Declaration',steam:'Ethics · Transparency',
+body:`You tell Lady Macbeth about the prophecy — and in the same breath, your decision.
+<div class="dlg"><span class="spk">Macbeth</span>"The witches said I shall be King hereafter. They did not specify through murder. And I will not be a king built on blood."</div>
+She is quiet for a long time. You can see her recalibrating — not accepting, but genuinely processing. <em>Paired information with a clear stated value is harder to argue with than vague moral hesitation.</em> Vagueness is what she exploits. You have left her none.`,
+choices:[
+{text:'Invite her to help design a legitimate path — make her a strategic partner, not an obstacle.',tag:'Behavioural',dark:false,
+fx:{resolve:+15,influence:-15,suspicion:-10,loyalty:+10,exposure:-10},next:'s_redirect',
+impact:'Converting her from adversary to partner channels her considerable capability constructively. Her hold over you decreases because she now has a stake in your legitimate success.',
+logic:'Behavioural Engineering: When a high-drive actor is given a meaningful role in a constructive plan, the destructive alternative loses its appeal.'},
+{text:'Report to Duncan the next morning — complete disclosure, complete trust.',tag:'Ethics',dark:false,
+fx:{resolve:+25,influence:-20,suspicion:-15,trust:+25,exposure:+10},next:'s_confess',
+impact:'Full transparency to Duncan, declared the morning after your decision, is maximally credible. His trust increases dramatically. Lady Macbeth\'s plan loses its entire foundation.',
+logic:'Ethics: Moral declarations made to the potential victim, rather than only to the perpetrator, create structural accountability rather than just interpersonal agreement.'},
+{text:'Go directly to Banquo with the whole truth — the prophecy, the plan, and your refusal.',tag:'Systems',dark:false,
+fx:{resolve:+20,loyalty:+20,influence:-20,suspicion:-10,exposure:-5},next:'s_banquo',
+impact:'Bringing Banquo fully into the picture creates a second guardian. Lady Macbeth can no longer act unobserved. Loyalty strengthens as Banquo understands why you need him.',
+logic:'Systems Thinking: Distributing information to trusted allies creates redundant protection — the plan cannot proceed without being observed by at least one rational check.'},
+{text:'Leave her to think on it. Return tomorrow. Give her space to arrive at it herself.',tag:'Patience',dark:false,
+fx:{resolve:+5,influence:+5,guilt:+10,exposure:+5},next:'s_morning_after',
+impact:'Patience allows reflection but also allows the plan to remain active overnight. Guilt rises as you carry the uncertainty. Lady Macbeth\'s influence holds because the conversation is unresolved.',
+logic:'Psychology: Leaving a high-stakes moral conversation unresolved overnight gives both parties time to reconsider — but also allows dangerous plans to persist another day.'},
+]
+},
+// ═══════════════════════════════════════════════════
+// ENDINGS
+// ═══════════════════════════════════════════════════
+end_hero:{ending:true,type:'safe',icon:'👑',
+title:'The Rational King',
+sub:'Duncan lives. Scotland is stable. Macbeth rises through integrity.',
+body:`You dismantled the machinery of fate through transparency, systems thinking, and a precise understanding of human behaviour as a causal system. By naming ambition openly, removing structural opportunity, and redirecting Lady Macbeth's intelligence toward legitimate strategy, you disrupted the chain the witches relied on.
+<br><br>Duncan, moved by your honesty, begins formally involving you in the question of succession. Over the years — through alliance and reputation rather than blood — you become the most trusted lord in Scotland. Malcolm is king when Duncan dies of old age. And in the fullness of time, you serve his court as the man who proved that foresight and ethics are not opposites.
+<br><br><em>The witches' prophecy is never technically fulfilled. But you have found something better than a crown: the certainty that you did not become the thing you feared.</em>`,
+steam:[
+{b:'Engineering',t:'You removed structural conditions for murder — secrecy, opportunity, and isolation — before they could compound.'},
+{b:'Psychology',t:'You named Lady Macbeth\'s manipulation techniques precisely, neutralising each one as it was deployed.'},
+{b:'Mathematics',t:'You treated prophecy as a conditional probability and systematically changed the conditions.'},
+{b:'Ethics',t:'Transparency was used as a systemic intervention, not merely a moral gesture — it had structural consequences.'},
+{b:'Systems',t:'You modelled the full causal chain and disrupted multiple links simultaneously rather than addressing symptoms.'},
+]
+},
+end_strategic:{ending:true,type:'safe',icon:'⚖️',
+title:'The Long Game',
+sub:'Duncan lives. Ambition finds a legitimate channel. The prophecy waits.',
+body:`You did not achieve moral purity — but you achieved the outcome that mattered most: Duncan lives and you did not become a murderer. Through a combination of quiet engineering, alliance-building, and redirecting Lady Macbeth's energy, you navigated the crisis without blood.
+<br><br>Lady Macbeth is never entirely at peace. On some evenings you catch her watching the court with that old calculating look. But the system you've built around her — accountability, transparency, redirected purpose — holds firm.
+<br><br><em>The prophecy remains unresolved. The witches are silent. Scotland sleeps. Some nights that is enough.</em>`,
+steam:[
+{b:'Behavioural Sci',t:'Lady Macbeth\'s high-drive personality was redirected rather than suppressed — giving ambition a constructive channel.'},
+{b:'Systems',t:'Multiple causal links were broken through distributed, sustained intervention rather than a single dramatic act.'},
+{b:'Political Sci',t:'Legitimate institutional channels absorbed the energy that would otherwise have expressed as violence.'},
+{b:'Risk Mgmt',t:'Partial interventions across several decision points achieved the outcome without requiring maximum exposure of the situation.'},
+]
+},
+end_redeemed:{ending:true,type:'warning',icon:'🕯️',
+title:'The Flawed Redemption',
+sub:'Duncan lives — but at personal cost. Macbeth is diminished and changed.',
+body:`You did not stop the darkness from touching you. But you stopped it before it consumed you. Your confession, your late refusal, your transparency — they came at real cost to reputation and position. Some trust is slow to return.
+<br><br>Lady Macbeth spends years carrying something that never fully resolves. There are nights she walks. There are mornings she cannot explain her hands. But she did not do it. And neither did you.
+<br><br><em>Redemption is not a return to innocence. It is building something new in the space where innocence used to be — and discovering that the new thing is stronger, if harder to wear.</em>`,
+steam:[
+{b:'Ethics',t:'Late ethical intervention is more costly than early intervention but still decisively changes outcomes — the moral act remains the moral act.'},
+{b:'Psychology',t:'The personal cost of delayed moral action is a measurable, systemic consequence — not just an emotional one.'},
+{b:'Probability',t:'Every step toward the original causal chain raised the price of prevention, demonstrating that early intervention has exponentially lower cost.'},
+{b:'Behavioural Sci',t:'Lady Macbeth\'s eventual breakdown reflects the psychological cost of sustained suppression of moral response — a cost the system does not absorb silently.'},
+]
+},
+end_murder:{ending:true,type:'danger',icon:'🗡️',
+title:'The Original Tragedy',
+sub:'Duncan is dead. The causal chain held. The witches were right.',
+body:`It is done. The king lies still. Lady Macbeth washes her hands and the water runs red.
+<br><br>And now the system — the one you chose not to disrupt across every available decision point — begins its terrible second act. Banquo must die. Macduff's family must die. The apparitions multiply. Sleep is gone. Lady Macbeth unravels from the inside. The castle is full of sounds she cannot explain.
+<div class="dlg"><span class="spk">Macbeth</span>"I am in blood stepped in so far that, should I wade no more, returning were as tedious as go o'er."</div>
+<em>The prophecy was fulfilled — not by fate, but by a chain of rational failures: suppressed information, unchecked influence, unexamined ambition, and a sequence of decisions that each seemed reversible, until they were not.</em>
+<br><br>The witches predicted the outcome. They did not force it. You walked toward it, one decision at a time, choosing each step with the full knowledge that you were choosing.`,
+steam:[
+{b:'Causal Systems',t:'Each passive decision preserved an intact causal chain. Systems produce their natural outputs when no external force disrupts them.'},
+{b:'Psychology',t:'Social manipulation by Lady Macbeth systematically overrode rational cognition at each critical decision point.'},
+{b:'Ethics',t:'Moral suppression compounds — each violation lowers the cognitive threshold for the next. The first murder makes the second possible.'},
+{b:'Mathematics',t:'The prophecy was conditional. The conditions were met because they were never disrupted despite multiple available intervention points.'},
+{b:'Information',t:'Unshared information became an asymmetric power that enabled manipulation to build unobserved. Secrecy was the foundational variable.'},
+]
+},
+};
+// ═══════════════════════════════════════════════════
+// RENDER ENGINE
+// ═══════════════════════════════════════════════════
+function sc(v,inv){
+if(inv) return v>65?'#6b0f0f':v>40?'#a07828':'#2d6b3a';
+return v<30?'#6b0f0f':v<55?'#a07828':'#2d6b3a';
+}
+function renderStats(){
+const rows=VARS.map(v=>{
+const val=G[v.k];
+const c=sc(val,v.inv);
+const d=G.lastFx[v.k]||0;
+let ds='';
+if(d>0) ds=`<span class="sdelta pos">+${d}</span>`;
+else if(d<0) ds=`<span class="sdelta neg">${d}</span>`;
+return `<div class="stat" title="${v.tip}">
+<div class="sl">${v.l}</div>
+<div class="srow">
+<div class="sbo"><div class="sbi" style="width:${val}%;background:${c}"></div></div>
+<div class="sv" style="color:${c}">${val}</div>
+${ds}
+</div>
+</div>`;
+}).join('');
+return `<div class="stats-panel"><div class="sp-title">⚗ Variable Tracker — hover choices to preview impact</div><div class="sg">${rows}</div></div>`;
+}
+function renderConsequence(){
+if(!G.lastScene || !G.lastChoice) return '';
+const{text,impact}=G.lastChoice;
+const changes=Object.entries(G.lastFx).filter(([,v])=>v!==0);
+if(!changes.length&&!impact) return '';
+const chips=changes.map(([k,v])=>{
+const vd=VARS.find(x=>x.k===k);
+const label=vd?vd.l:k;
+const cls=v>0&&!vd?.inv?'up':v<0&&vd?.inv?'up':'dn';
+const sym=cls==='up'?'↑':'↓';
+return `<div class="chip ${cls}">${sym} ${label} ${v>0?'+':''}${v}</div>`;
+}).join('');
+return `<div class="consequence show">
+<div class="cq-title">⟵ Consequence of your last choice</div>
+<div class="cq-body">${impact||''}</div>
+<div class="cq-chips">${chips}</div>
+</div>`;
+}
+function impactChips(fx){
+return Object.entries(fx||{}).filter(([,v])=>v!==0).map(([k,v])=>{
+const vd=VARS.find(x=>x.k===k);
+const label=vd?vd.l:k;
+const cls=v>0&&!vd?.inv?'up':v<0&&vd?.inv?'up':'dn';
+const sym=cls==='up'?'↑':'↓';
+return `<div class="chip ${cls}">${sym} ${label} ${v>0?'+':''}${v}</div>`;
+}).join('');
+}
+function renderHistory(){
+if(!G.history.length) return '';
+return `<div class="history"><div class="hl">Your path through the story</div>
+<div class="hi">${G.history.map(h=>`<span class="hchip">${h}</span>`).join('')}</div>
+</div>`;
+}
+function go(id){
+const scene=S[id];
+if(!scene){console.error('Missing:',id);return;}
+G.page++;
+const el=document.getElementById('root');
+if(scene.ending){
+el.className='inner fade';
+el.innerHTML=`
+<span class="ch-label">— Epilogue —</span>
+${renderStats()}
+<span class="eicon">${scene.icon}</span>
+<div class="etitle${scene.type==='danger'?' blood':''}">${scene.title}</div>
+<div class="esub">${scene.sub}</div>
+<div class="ornament">✦ ✦ ✦</div>
+<div class="ebody">${scene.body}</div>
+<div class="steam-bd">
+<h4>⚗ STEAM Analysis of this Outcome</h4>
+${scene.steam.map(s=>`<div class="si"><span class="sb">${s.b}</span><span>${s.t}</span></div>`).join('')}
+</div>
+<div class="score-grid">
+${VARS.map(v=>`<div class="sc-item"><div class="sc-lbl">${v.l}</div><div class="sc-v" style="color:${sc(G[v.k],v.inv)}">${G[v.k]}</div></div>`).join('')}
+</div>
+${renderHistory()}
+<button class="rbtn" onclick="restart()">↺ Begin Again</button>
+<div class="pgnum">— Finis —</div>
+`;
+return;
+}
+el.className='inner fade';
+el.innerHTML=`
+<span class="ch-label">${scene.act}</span>
+<div class="sc-title">${scene.title}</div>
+<span class="stag">⚗ ${scene.steam}</span>
+<br><br>
+${renderStats()}
+${renderConsequence()}
+<div class="sc-body">${scene.body}</div>
+<div class="choices-hdr">— What do you do? —</div>
+<div class="choices">
+${scene.choices.map((c,i)=>`
+<button class="cbtn${c.dark?' dark':''}" onclick="choose('${id}',${i})">
+<div class="cmain">
+<span class="carr">›</span>
+<span class="ctxt">${c.text}</span>
+<span class="ctag${c.dark?' dtag':''}">${c.tag}</span>
+</div>
+<div class="cimpact">${impactChips(c.fx)}</div>
+<div class="clogic"><span class="lbl">STEAM Reasoning:</span>${c.logic}</div>
+</button>`).join('')}
+</div>
+${renderHistory()}
+<div class="pgnum">Page ${G.page} of Scotland's fate</div>
+`;
+}
+function choose(sid,idx){
+const c=S[sid].choices[idx];
+G.lastScene=sid;
+G.lastChoice=c;
+applyFx(c.fx);
+const label=c.text.replace(/<[^>]+>/g,'').replace(/[^\x20-\x7E]/g,'').trim().slice(0,35)+'…';
+G.history.push(label);
+go(c.next);
+}
+function restart(){reset();renderTitle();}
+function renderTitle(){
+const el=document.getElementById('root');
+el.className='inner fade';
+el.innerHTML=`
+<span class="ch-label">A STEAM Interactive Simulation</span>
+<div class="bk-title">Macbeth</div>
+<div class="bk-sub">The Fate Engine — Can rational thinking defeat destiny?</div>
+<div class="ornament">— ✦ —</div>
+<div class="sc-body">
+Scotland, 1040. You have just heard the witches' prophecy: <em>"All hail, Macbeth, that shalt be King hereafter!"</em>
+<br><br>In Shakespeare's original, Macbeth follows ambition to its darkest end. <strong>This simulation asks: what if he applied logic, behavioural science, and systems thinking instead?</strong>
+<br><br>Over <strong>40+ decision points</strong> and <strong>20+ distinct scenes</strong>, every choice shows you its individual impact on 8 variables in real time. Hover any choice before clicking to see its STEAM reasoning and exact effects.
+</div>
+<div class="steam-bd">
+<h4>Your Eight Variables</h4>
+${VARS.map(v=>`<div class="si"><span class="sb">${v.l}</span><span>${v.tip}</span></div>`).join('')}
+</div>
+<div class="choices">
+<button class="cbtn" style="text-align:center" onclick="go('start')">
+<div class="cmain" style="justify-content:center">
+<span class="carr">›</span>
+<span class="ctxt" style="font-size:1.05rem">Begin the Simulation</span>
+</div>
+</button>
+</div>
+<div class="pgnum">— Scotland, Anno Domini 1040 —</div>
+`;
+}
+renderTitle();
+</script>
+</body>
+</html>
 
